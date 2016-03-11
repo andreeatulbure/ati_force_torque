@@ -93,7 +93,7 @@ public:
   bool SetBaudRate(int value);
   bool SetBaseIdentifier(int identifier);
   bool Reset();
-  void ReadSGData(int statusCode, double& Fx, double& Fy, double& Fz, double& Tx, double& Ty, double& Tz);
+  bool ReadSGData(int statusCode, double& Fx, double& Fy, double& Fz, double& Tx, double& Ty, double& Tz);
   bool ReadFirmwareVersion();
   void ReadCalibrationMatrix();
 

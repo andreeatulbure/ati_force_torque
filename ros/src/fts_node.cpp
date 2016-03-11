@@ -385,43 +385,45 @@ void ForceTorqueNode::updateFTData(const ros::TimerEvent &event)
   int status = 0;
   double Fx, Fy, Fz, Tx, Ty, Tz = 0;
 
-  p_Ftc->ReadSGData(status, Fx, Fy, Fz, Tx, Ty, Tz);
-
-  geometry_msgs::WrenchStamped msg, msg_transformed;
-
-  msg.header.frame_id = frame_id;
-  msg.header.stamp = ros::Time::now();
-  msg.wrench.force.x = Fx - F_avg[0];
-  msg.wrench.force.y = Fy - F_avg[1];
-  msg.wrench.force.z = Fz - F_avg[2];
-  msg.wrench.torque.x = Tx - F_avg[3];
-  msg.wrench.torque.y = Ty - F_avg[4];
-  msg.wrench.torque.z = Tz - F_avg[5];
-  topicPub_ForceData_.publish(msg);
-
-  try
+  bool bRet=p_Ftc->ReadSGData(status, Fx, Fy, Fz, Tx, Ty, Tz);
+  if(bRet!=false)
   {
-    transform_ee_base_stamped = p_tfBuffer->lookupTransform(transform_frame_id, frame_id, ros::Time(0));
+    geometry_msgs::WrenchStamped msg, msg_transformed;
+
+    msg.header.frame_id = frame_id;
+    msg.header.stamp = ros::Time::now();
+    msg.wrench.force.x = Fx - F_avg[0];
+    msg.wrench.force.y = Fy - F_avg[1];
+    msg.wrench.force.z = Fz - F_avg[2];
+    msg.wrench.torque.x = Tx - F_avg[3];
+    msg.wrench.torque.y = Ty - F_avg[4];
+    msg.wrench.torque.z = Tz - F_avg[5];
+    topicPub_ForceData_.publish(msg);
+
+    try
+    {
+      transform_ee_base_stamped = p_tfBuffer->lookupTransform(transform_frame_id, frame_id, ros::Time(0));
+    }
+    catch (tf2::TransformException ex)
+    {
+      ROS_ERROR("%s", ex.what());
+    }
+
+    geometry_msgs::Vector3Stamped temp_vector_in, temp_vector_out;
+
+    temp_vector_in.header = msg.header;
+    temp_vector_in.vector = msg.wrench.force;
+    tf2::doTransform(temp_vector_in, temp_vector_out, transform_ee_base_stamped);
+    msg_transformed.header.stamp = msg.header.stamp;
+    msg_transformed.header.frame_id = temp_vector_out.header.frame_id;
+    msg_transformed.wrench.force = temp_vector_out.vector;
+
+    temp_vector_in.vector = msg.wrench.torque;
+    tf2::doTransform(temp_vector_in, temp_vector_out, transform_ee_base_stamped);
+    msg_transformed.wrench.torque = temp_vector_out.vector;
+
+    topicPub_ForceDataTrans_.publish(msg_transformed);
   }
-  catch (tf2::TransformException ex)
-  {
-    ROS_ERROR("%s", ex.what());
-  }
-
-  geometry_msgs::Vector3Stamped temp_vector_in, temp_vector_out;
-
-  temp_vector_in.header = msg.header;
-  temp_vector_in.vector = msg.wrench.force;
-  tf2::doTransform(temp_vector_in, temp_vector_out, transform_ee_base_stamped);
-  msg_transformed.header.stamp = msg.header.stamp;
-  msg_transformed.header.frame_id = temp_vector_out.header.frame_id;
-  msg_transformed.wrench.force = temp_vector_out.vector;
-
-  temp_vector_in.vector = msg.wrench.torque;
-  tf2::doTransform(temp_vector_in, temp_vector_out, transform_ee_base_stamped);
-  msg_transformed.wrench.torque = temp_vector_out.vector;
-
-  topicPub_ForceDataTrans_.publish(msg_transformed);
 }
 
 int main(int argc, char **argv)

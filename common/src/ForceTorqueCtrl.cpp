@@ -683,7 +683,7 @@ bool ForceTorqueCtrl::ReadFirmwareVersion()
   return ret;
 }
 
-void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double &Fz, double &Tx, double &Ty, double &Tz)
+bool ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double &Fz, double &Tx, double &Ty, double &Tz)
 {
   int sg0 = 0, sg1 = 0, sg2 = 0, sg3 = 0, sg4 = 0, sg5 = 0;
 
@@ -695,7 +695,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
   if (!ret)
   {
     std::cout << "ForceTorqueCtrl::ReadSGData: Error: Transmiting message failed!" << std::endl;
-    return;
+    return false;
   }
 
   CanMsg replyMsg;
@@ -711,8 +711,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
       std::cout << "reply Data: \t" << replyMsg.getAt(0) << " " << replyMsg.getAt(1) << " " << replyMsg.getAt(2) << " "
                 << replyMsg.getAt(3) << " " << replyMsg.getAt(4) << " " << replyMsg.getAt(5) << " " << replyMsg.getAt(6)
                 << " " << replyMsg.getAt(7) << std::endl;
-      exit(1);
-      return;
+      return false ;
     }
 
     c[0] = replyMsg.getAt(0);  // status code
@@ -747,7 +746,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
     sg4 = (short)((c[0] << 8) | c[1]);
   }
   else
-    return;
+    return false;
 
   ret2 = m_pCanCtrl->receiveMsgRetry(&replyMsg, 10);
   if (ret2)
@@ -760,8 +759,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
       std::cout << "reply Data: \t" << replyMsg.getAt(0) << " " << replyMsg.getAt(1) << " " << replyMsg.getAt(2) << " "
                 << replyMsg.getAt(3) << " " << replyMsg.getAt(4) << " " << replyMsg.getAt(5) << " " << replyMsg.getAt(6)
                 << " " << replyMsg.getAt(7) << std::endl;
-      exit(1);
-      return;
+      return false ;
     }
 
     c[0] = replyMsg.getAt(0);  // sg1
@@ -777,7 +775,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
     sg5 = (short)((c[0] << 8) | c[1]);
   }
   else
-    return;
+    return false;
 
   StrainGaugeToForce(sg0, sg1, sg2, sg3, sg4, sg5);
   Fx = m_vForceData(0);
@@ -786,6 +784,7 @@ void ForceTorqueCtrl::ReadSGData(int statusCode, double &Fx, double &Fy, double 
   Tx = m_vForceData(3);
   Ty = m_vForceData(4);
   Tz = m_vForceData(5);
+  return true;
 }
 
 void ForceTorqueCtrl::StrainGaugeToForce(int &sg0, int &sg1, int &sg2, int &sg3, int &sg4, int &sg5)
